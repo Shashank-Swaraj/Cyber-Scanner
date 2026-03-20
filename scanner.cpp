@@ -1,0 +1,122 @@
+#include <iostream>
+#include <vector>
+#include <fstream>
+#include <curl/curl.h>
+#include <thread>
+#include <mutex>
+
+
+using namespace std;
+
+
+mutex mtx;
+ofstream report("report.txt");
+
+// callback
+size_t writeCallback(void* contents, size_t size, size_t nmemb, string* output) {
+    output->append((char*)contents, size * nmemb);
+    return size * nmemb;
+}
+
+// HTTP request
+string http_get(const string& url) {
+    CURL* curl = curl_easy_init();
+    string response;
+
+    if(curl) {
+        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
+        curl_easy_perform(curl);
+        curl_easy_cleanup(curl);
+    }
+
+    return response;
+}
+
+// load payloads
+vector<string> load_payloads(const string& filename) {
+    vector<string> payloads;
+    ifstream file(filename);
+    string line;
+
+    while(getline(file, line)) {
+        if(!line.empty()) {
+            payloads.push_back(line);
+        }
+    }
+
+    return payloads;
+}
+
+
+
+
+//Scan Payloads
+
+void scan_payload(string base_url, string payload) {
+
+    string final_url = base_url + payload;
+    string response = http_get(final_url);
+
+    mtx.lock();
+
+    cout << "\nTesting: " << payload << endl;
+
+    if(response.find("alert(1)") != string::npos) {
+	cout << "[VULNERABLE]" << endl;
+        report << "[VULNERABLE]"<< final_url << endl;
+    } else {
+        cout << "[SAFE]" << endl;
+	report << "[SAFE]" << final_url << endl;
+    }
+     mtx.unlock();
+}
+
+
+
+
+
+//main Function
+
+int main(int argc, char* argv[]) {
+
+    string url;
+    int thread_count = 3; // default
+
+    // simple argument parsing
+    for(int i = 1; i < argc; i++) {
+        string arg = argv[i];
+
+        if(arg == "--url" && i + 1 < argc) {
+            url = argv[i + 1];
+        }
+
+        if(arg == "--threads" && i + 1 < argc) {
+            thread_count = stoi(argv[i + 1]);
+        }
+    }
+
+    if(url.empty()) {
+        cout << "Usage: ./scanner --url <target> --threads <num>" << endl;
+        return 1;
+    }
+
+    vector<string> payloads = load_payloads("payloads/xss.txt");
+
+    cout << "Target: " << url << endl;
+    cout << "Threads: " << thread_count << endl;
+
+    vector<thread> threads;
+
+    for(string payload : payloads) {
+        threads.push_back(thread(scan_payload, url, payload));
+    }
+
+    for(auto& t : threads) {
+        t.join();
+    }
+
+    return 0;
+}
