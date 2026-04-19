@@ -60,42 +60,18 @@ void scan_payload(string base_url, string payload) {
     string final_url = base_url + payload;
     string response = http_get(final_url);
 
-    bool vulnerable = false;
-
-    // Exact payload reflection
-    if (response.find(payload) != string::npos) {
-        vulnerable = true;
-    }
-
-    // Common XSS patterns
-    if (response.find("<script") != string::npos ||
-        response.find("alert(") != string::npos ||
-        response.find("onerror=") != string::npos ||
-        response.find("onload=") != string::npos ||
-        response.find("<svg") != string::npos ||
-        response.find("javascript:") != string::npos) {
-        vulnerable = true;
-    }
-
-    // Encoded payload detection
-    if (response.find("&lt;script&gt;") != string::npos) {
-        vulnerable = true;
-    }
-
-    // Output (thread-safe)
     mtx.lock();
 
     cout << "\nTesting: " << payload << endl;
 
-    if (vulnerable) {
-        cout << "[VULNERABLE]" << endl;
-        report << "[VULNERABLE] " << final_url << endl;
+    if(response.find("alert(1)") != string::npos) {
+	cout << "[VULNERABLE]" << endl;
+        report << "[VULNERABLE]"<< final_url << endl;
     } else {
         cout << "[SAFE]" << endl;
-        report << "[SAFE] " << final_url << endl;
+	report << "[SAFE]" << final_url << endl;
     }
-
-    mtx.unlock();
+     mtx.unlock();
 }
 
 
@@ -144,3 +120,5 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
+
+

@@ -1,3 +1,3 @@
-[SAFE]http://testphp.vulnweb.com/listproducts.php?cat=" onmouseover=alert(1)
-[SAFE]http://testphp.vulnweb.com/listproducts.php?cat=<script>alert(1)</script>
-[SAFE]http://testphp.vulnweb.com/listproducts.php?cat='><script>alert(1)</script>
+[SAFE] https://shashankswaraj-portfolio.vercel.app/" onmouseover=alert(1)
+[SAFE] https://shashankswaraj-portfolio.vercel.app/<script>alert(1)</script>
+[SAFE] https://shashankswaraj-portfolio.vercel.app/'><script>alert(1)</script>
